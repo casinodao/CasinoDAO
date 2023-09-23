@@ -1,0 +1,79 @@
+pragma solidity ^0.8.18;
+
+contract Token {
+    mapping(address => uint) public balances;
+    mapping(address => mapping(address => uint)) public allowance;
+
+    uint public totalSupply = 1000000000 * 10 ** 18;
+    string public name = "CasinoDAO";
+    string public symbol = "CHIP";
+    uint public decimals = 18;
+
+    address public dao;
+
+    mapping (address => bool) public allowlist;
+
+    event Transfer(address indexed from, address indexed to, uint value);
+    event Approval(address indexed owner, address indexed spender, uint value);
+    
+    constructor() {
+        balances[msg.sender] = totalSupply;
+    }
+    
+    function balanceOf(address owner) public view returns(uint) {
+        return balances[owner];
+    }
+    
+    function transfer(address to, uint value) public returns(bool) {
+        require(balanceOf(msg.sender) >= value, 'balance too low');
+        balances[to] += value;
+        balances[msg.sender] -= value;
+        emit Transfer(msg.sender, to, value);
+        return true;
+    }
+    
+    function transferFrom(address from, address to, uint value) public returns(bool) {
+        require(balanceOf(from) >= value, 'balance too low');
+        require(allowance[from][msg.sender] >= value, 'allowance too low');
+        balances[to] += value;
+        balances[from] -= value;
+        emit Transfer(from, to, value);
+        return true;   
+    }
+    
+    function approve(address spender, uint value) public returns (bool) {
+        allowance[msg.sender][spender] = value;
+        emit Approval(msg.sender, spender, value);
+        return true;   
+    }
+
+    function changeDao(address newDao) public {
+        require(msg.sender == dao, 'only dao can change dao');
+        dao = newDao;
+    }
+
+    function addToAllowlist(address add) public {
+        require(msg.sender == dao, 'only dao can add to allowlist');
+        allowlist[add] = true;
+    }
+
+    function removeFromAllowlist(address remove) public {
+        require(msg.sender == dao, 'only dao can remove from allowlist');
+        if (allowlist[remove]) {
+            allowlist[remove] = false;
+        }
+    }
+
+    function mine(uint value) public {
+        require(allowlist[msg.sender], 'only allowlisted can mine');
+        balances[msg.sender] += value;
+        totalSupply += value; // ?
+    }
+  
+    function burn(uint value) public {
+        require(allowlist[msg.sender], 'only allowlisted can burn');
+        require(balanceOf(msg.sender) >= value, 'balance too low');
+        balances[msg.sender] -= value;
+        totalSupply -= value; // ?
+    }
+}
